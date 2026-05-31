@@ -1,5 +1,8 @@
 #usda 1.0
 (
+    customLayerData = {
+        string creator = "Reality Composer Pro Version 2.0 (494.100.6)"
+    }
     defaultPrim = "Root"
     metersPerUnit = 1
     upAxis = "Y"
@@ -7,44 +10,180 @@
 
 def Xform "Root"
 {
-    reorder nameChildren = ["Sphere_Left", "Sphere_Right", "GridMaterial"]
+    float3 xformOp:translate = (0, 0, 0)
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+    def RealityKitComponent "ImageBasedLight"
+    {
+        bool enableRotation = 0
+        asset ibl = @citrus_orchard_puresky_4k.exr@
+        uniform token info:id = "RealityKit.ImageBasedLight"
+        float intensityExponent = 2.0520833
+        bool isGlobalIBL = 0
+    }
+
+    def "Procedural_City_4" (
+        active = true
+        prepend references = @Ground/Procedural_City_4.usdz@
+    )
+    {
+        float3 xformOp:scale = (0.5, 0.5, 0.5)
+        float3 xformOp:translate = (0, 0, -64.72291)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+        def RealityKitComponent "ImageBasedLight"
+        {
+            asset ibl = @citrus_orchard_puresky_4k.exr@
+            uniform token info:id = "RealityKit.ImageBasedLight"
+            float intensityExponent = 1
+            bool isGlobalIBL = 0
+        }
+
+        over "Meshes"
+        {
+            def RealityKitComponent "DirectionalLight"
+            {
+                uniform token info:id = "RealityKit.DirectionalLight"
+                float intensity = 1000
+
+                def RealityKitStruct "Shadow"
+                {
+                }
+            }
+        }
+    }
+
     def "SkyDome" (
         active = true
         prepend references = @SkyDome.usdz@
     )
     {
-        float3 xformOp:scale = (0.01, 0.01, 0.01)
-        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
-    }
-
-    def Xform "Video_Dock" (
-        references = None
-    )
-    {
-        double3 xformOp:translate = (0, 0.8, -3)
+        float3 xformOp:scale = (0.25, 0.25, 0.25)
+        float3 xformOp:translate = (0, 0, 0)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
 
-        def Xform "Player"
+        over "mtl"
         {
-            double3 xformOp:translate = (0, 0.6, 0)
-            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
-
-            def RealityKitComponent "CustomDockingRegion"
+            over "DomeMATSG"
             {
-                token info:id = "RealityKit.CustomDockingRegion"
+                token inputs:frame:stPrimvarName = "st" (
+                    customData = {
+                        dictionary realitykit = {
+                            bool hide = 1
+                        }
+                    }
+                )
+                token outputs:mtlx:surface
+                token outputs:realitykit:vertex
 
-                def RealityKitStruct "m_bounds"
+                def Shader "diffuseColor"
                 {
-                    float3 max = (1.2, 0.5, 0)
-                    float3 min = (-1.2, -0.5, -0)
+                    uniform token info:id = "UsdUVTexture"
+                    asset inputs:file = @citrus_orchard_puresky_4k.exr@
+                    float2 inputs:st.connect = </Root/SkyDome/mtl/DomeMATSG/diffuseColor/TexCoordReader.outputs:result>
+                    color3f outputs:rgb
+
+                    def Shader "TexCoordReader"
+                    {
+                        uniform token info:id = "UsdPrimvarReader_float2"
+                        token inputs:varname.connect = </Root/SkyDome/mtl/DomeMATSG.inputs:frame:stPrimvarName>
+                        float2 outputs:result
+                    }
+                }
+
+                over "DomeMAT"
+                {
+                    color3f inputs:diffuseColor.connect = </Root/SkyDome/mtl/DomeMATSG/diffuseColor.outputs:rgb>
+                }
+            }
+
+            over "GroundMATSG"
+            {
+                token inputs:frame:stPrimvarName = "st" (
+                    customData = {
+                        dictionary realitykit = {
+                            bool hide = 1
+                        }
+                    }
+                )
+                token outputs:mtlx:surface
+                token outputs:realitykit:vertex
+
+                def Shader "diffuseColor"
+                {
+                    uniform token info:id = "UsdUVTexture"
+                    asset inputs:file = @citrus_orchard_puresky_4k.exr@
+                    float2 inputs:st.connect = </Root/SkyDome/mtl/GroundMATSG/diffuseColor/TexCoordReader.outputs:result>
+                    color3f outputs:rgb
+
+                    def Shader "TexCoordReader"
+                    {
+                        uniform token info:id = "UsdPrimvarReader_float2"
+                        token inputs:varname.connect = </Root/SkyDome/mtl/GroundMATSG.inputs:frame:stPrimvarName>
+                        float2 outputs:result
+                    }
+                }
+
+                over "GroundMAT"
+                {
+                    color3f inputs:diffuseColor = (0.21566479, 0.48462892, 0.32643893) (
+                        colorSpace = "srgb_displayp3"
+                    )
+                    color3f inputs:diffuseColor.connect = None
+                }
+            }
+
+            over "GridMATSG"
+            {
+                token inputs:frame:stPrimvarName = "st" (
+                    customData = {
+                        dictionary realitykit = {
+                            bool hide = 1
+                        }
+                    }
+                )
+                token outputs:mtlx:surface
+                token outputs:realitykit:vertex
+
+                def Shader "diffuseColor"
+                {
+                    uniform token info:id = "UsdUVTexture"
+                    asset inputs:file = @citrus_orchard_puresky_4k.exr@
+                    float2 inputs:st.connect = </Root/SkyDome/mtl/GridMATSG/diffuseColor/TexCoordReader.outputs:result>
+                    color3f outputs:rgb
+
+                    def Shader "TexCoordReader"
+                    {
+                        uniform token info:id = "UsdPrimvarReader_float2"
+                        token inputs:varname.connect = </Root/SkyDome/mtl/GridMATSG.inputs:frame:stPrimvarName>
+                        float2 outputs:result
+                    }
+                }
+
+                over "GridMAT"
+                {
+                    color3f inputs:diffuseColor.connect = </Root/SkyDome/mtl/GridMATSG/diffuseColor.outputs:rgb>
                 }
             }
         }
+    }
 
-        def "Ground" (
-            prepend references = @Ground/Ground.usda@
-        )
+    def "BigSign" (
+        active = true
+        customData = {
+            float3 rotationEulerHint = (-1.5533432, -0.5235988, 0.034906615)
+        }
+        prepend references = @BigSign.usdc@
+    )
+    {
+        quatf xformOp:orient = (0.6920081, -0.6737015, -0.19639042, -0.16935726)
+        float3 xformOp:scale = (0.99999994, 0.99999994, 0.99999994)
+        float3 xformOp:translate = (-15.033938, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+        def RealityKitComponent "InputTarget"
         {
+            uniform token info:id = "RealityKit.InputTarget"
         }
     }
 }

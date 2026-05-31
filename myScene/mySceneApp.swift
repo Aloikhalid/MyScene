@@ -9,30 +9,30 @@ import SwiftUI
 
 @main
 struct mySceneApp: App {
-    
     @State private var appModel = AppModel()
-    @State private var avPlayerViewModel = AVPlayerViewModel()
-    
+
     var body: some Scene {
         WindowGroup {
-            if avPlayerViewModel.isPlaying {
-                AVPlayerView(viewModel: avPlayerViewModel)
-            } else {
-                ContentView()
-                    .environment(appModel)
-            }
+            ContentView()
+                .environment(appModel)
         }
-        
+
         ImmersiveSpace(id: appModel.immersiveSpaceID) {
             ImmersiveView()
                 .environment(appModel)
                 .onAppear {
                     appModel.immersiveSpaceState = .open
-                    avPlayerViewModel.play()
+
+                    // ⏱ Trigger Deuteranomaly filter after 10 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                        withAnimation(.easeInOut(duration: 2.0)) {
+                            appModel.deuteranomalyActive = true
+                        }
+                    }
                 }
                 .onDisappear {
                     appModel.immersiveSpaceState = .closed
-                    avPlayerViewModel.reset()
+                    appModel.deuteranomalyActive = false
                 }
         }
         .immersionStyle(selection: .constant(.full), in: .full)

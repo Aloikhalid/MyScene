@@ -1,5 +1,20 @@
 {
   "pathsToIds" : {
-    "RealityKitContent\/Sources\/RealityKitContent\/RealityKitContent.rkassets\/Immersive.usda" : "C6A7F375-BFE9-46E0-9EA6-1A6B150F43FD"
+    "\/RealityKitContent\/Sources\/RealityKitContent\/RealityKitContent.rkassets\/Ground\/Untitled%20Scene.usda" : "DCF8BB2D-0592-495B-A8AF-AFD20A1B379D",
+    "\/RealityKitContent\/Sources\/RealityKitContent\/RealityKitContent.rkassets\/Immersive.usda" : "05428822-8EDB-4E86-B0B9-7C462BA9DF84",
+    "\/RealityKitContent\/Sources\/RealityKitContent\/RealityKitContent.rkassets\/New%20Folder\/Untitled%20Scene%201.usda" : "10F1EC44-4598-4E77-AC75-3211E437C7AD",
+    "\/RealityKitContent\/Sources\/RealityKitContent\/RealityKitContent.rkassets\/New%20Folder\/Untitled%20Scene.usda" : "65DD12B9-856D-4A74-AE61-6AB8A5584619",
+    "RealityKitContent\/Sources\/RealityKitContent\/RealityKitContent.rkassets\/Ground\/Untitled Scene.usda" : "3D4D5073-0010-4FCA-8AD7-B01E592DF2F6",
+    "RealityKitContent\/Sources\/RealityKitContent\/RealityKitContent.rkassets\/Immersive.usda" : "6965F0DD-3183-4AC6-AEB6-D51C14C64ADF"
+  },
+  "projectID" : -3312798245042650845,
+  "uuidToIntID" : {
+    "05428822-8EDB-4E86-B0B9-7C462BA9DF84" : 7258047419672032840,
+    "10F1EC44-4598-4E77-AC75-3211E437C7AD" : -2017447748376220240,
+    "3D4D5073-0010-4FCA-8AD7-B01E592DF2F6" : 7414855636017731744,
+    "65DD12B9-856D-4A74-AE61-6AB8A5584619" : 3122506111784744665,
+    "6965F0DD-3183-4AC6-AEB6-D51C14C64ADF" : -5065901075269698020,
+    "C6A7F375-BFE9-46E0-9EA6-1A6B150F43FD" : -9197847646692042989,
+    "DCF8BB2D-0592-495B-A8AF-AFD20A1B379D" : 4591686916920776187
   }
 }
