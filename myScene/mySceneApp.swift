@@ -4,7 +4,6 @@
 //
 //  Created by alya Alabdulrahim on 26/11/1447 AH.
 //
-
 import SwiftUI
 
 @main
@@ -22,17 +21,28 @@ struct mySceneApp: App {
                 .environment(appModel)
                 .onAppear {
                     appModel.immersiveSpaceState = .open
+                    appModel.deuteranomalyActive = false
+                    appModel.filterIntensity = 0.0
 
-                    // ⏱ Trigger Deuteranomaly filter after 10 seconds
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
-                        withAnimation(.easeInOut(duration: 2.0)) {
-                            appModel.deuteranomalyActive = true
+                    // Gradually increase filter over 10 seconds
+                    let steps = 20
+                    let interval = 10.0 / Double(steps)
+
+                    for i in 1...steps {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + interval * Double(i)) {
+                            withAnimation(.linear(duration: interval)) {
+                                appModel.filterIntensity = Double(i) / Double(steps)
+                                if i == steps {
+                                    appModel.deuteranomalyActive = true
+                                }
+                            }
                         }
                     }
                 }
                 .onDisappear {
                     appModel.immersiveSpaceState = .closed
                     appModel.deuteranomalyActive = false
+                    appModel.filterIntensity = 0.0
                 }
         }
         .immersionStyle(selection: .constant(.full), in: .full)

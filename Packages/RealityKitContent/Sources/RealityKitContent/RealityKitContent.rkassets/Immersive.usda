@@ -35,16 +35,22 @@ def Xform "Root"
         {
             asset ibl = @citrus_orchard_puresky_4k.exr@
             uniform token info:id = "RealityKit.ImageBasedLight"
-            float intensityExponent = 1
+            float intensityExponent = 6.9067707
             bool isGlobalIBL = 0
         }
 
         over "Meshes"
         {
+            quatf xformOp:orient = (0.99999994, 0, 0, 0)
+            float3 xformOp:scale = (3.6722462, 3.6722462, 3.6722462)
+            float3 xformOp:translate = (0, 0, 129.60582)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
             def RealityKitComponent "DirectionalLight"
             {
+                float3 color = (0.91963345, 1, 0.9328356)
                 uniform token info:id = "RealityKit.DirectionalLight"
-                float intensity = 1000
+                float intensity = 3000
 
                 def RealityKitStruct "Shadow"
                 {

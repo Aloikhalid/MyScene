@@ -38,18 +38,16 @@
       [
         "6965F0DD-3183-4AC6-AEB6-D51C14C64ADF",
         "Root",
-        "Procedural_City_4"
+        "SkyDome",
+        "mtl"
       ],
       {
-        "disallowsFraming" : false,
         "isExpanded" : true,
         "isLocked" : false
       },
       [
         "6965F0DD-3183-4AC6-AEB6-D51C14C64ADF",
-        "Root",
-        "SkyDome",
-        "mtl"
+        "Root"
       ],
       {
         "isExpanded" : true,
@@ -66,9 +64,11 @@
       },
       [
         "6965F0DD-3183-4AC6-AEB6-D51C14C64ADF",
-        "Root"
+        "Root",
+        "Procedural_City_4"
       ],
       {
+        "disallowsFraming" : false,
         "isExpanded" : true,
         "isLocked" : false
       }

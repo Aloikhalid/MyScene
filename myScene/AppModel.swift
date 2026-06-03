@@ -19,11 +19,13 @@ class AppModel {
     var immersiveSpaceState = ImmersiveSpaceState.closed
 
     // Sign controls
-    var signOpacity: Double = 1.0
+    var signColor: Color = Color(red: 0.2, green: 0.5, blue: 0.3)
+    var textColor: Color = .white
+    var signSaturation: Double = 1.0
     var signContrast: Double = 1.0
-    var signColor: Color = .white
+    var signOpacity: Double = 1.0
 
-    // Color blindness filter
+    // Filter
     var deuteranomalyActive: Bool = false
-    var deuteranomalyIntensity: Float = 0.0
+    var filterIntensity: Double = 0.0  // 0.0 = none, 1.0 = full
 }
