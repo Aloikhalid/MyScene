@@ -15,6 +15,30 @@ private final class TintCache {
     var storage: [ObjectIdentifier: [UIColor]] = [:]
 }
 
+/// Full-scene warm overlay that mimics the perceptual appearance of deuteranopia.
+/// Based on the same approach as the Sighted reference app:
+/// a warm yellow tint layer + a desaturation layer, both faded in with `intensity`.
+/// This avoids the colorMultiply-diagonal problem (which makes everything look blue).
+private struct DeuteranomalyOverlay: View {
+    var intensity: Double
+
+    var body: some View {
+        ZStack {
+            // Warm amber tint — deuteranopia shifts greens toward orange/yellow
+            Rectangle()
+                .fill(Color(red: 0.68, green: 0.62, blue: 0.32))
+                .opacity(intensity * 0.30)
+
+            // Desaturation layer — reduces the vivid green/red contrast
+            Rectangle()
+                .fill(Color.gray)
+                .blendMode(.saturation)
+                .opacity(intensity * 0.45)
+        }
+        .frame(width: 1500, height: 1500)
+    }
+}
+
 struct ImmersiveView: View {
     @Environment(AppModel.self) private var appModel
     @State private var signEntity: ModelEntity?
@@ -24,7 +48,7 @@ struct ImmersiveView: View {
     @State private var tintCache = TintCache()
 
     var body: some View {
-        RealityView { content in
+        RealityView { content, attachments in
             if let scene = try? await Entity(named: "Immersive",
                                              in: realityKitContentBundle) {
                 content.add(scene)
@@ -43,16 +67,24 @@ struct ImmersiveView: View {
                     sign.addChild(board)
                     signEntity = board
                     sign.components.set(HoverEffectComponent())
-
                     updateSignTexture(entity: board)
                 }
             }
-        } update: { content in
+
+            // Place the full-scene overlay as a large plane in front of the user.
+            // It uses SwiftUI blend modes so it tints the whole virtual world
+            // without flattening it to a solid colour.
+            if let overlay = attachments.entity(for: "deuteranomalyOverlay") {
+                overlay.position = [0, 1.5, -2.5]
+                content.add(overlay)
+            }
+
+        } update: { content, attachments in
             if let sign = signEntity {
                 updateSignTexture(entity: sign)
             }
 
-            // Re-apply color filter only when intensity actually changes
+            // Re-apply material-level Machado transform only when intensity changes
             let intensity = Float(appModel.filterIntensity)
             if intensity != lastAppliedIntensity {
                 lastAppliedIntensity = intensity
@@ -60,43 +92,31 @@ struct ImmersiveView: View {
                     applyColorFilter(to: scene, intensity: intensity)
                 }
             }
+        } attachments: {
+            // The overlay view reactively updates whenever filterIntensity changes.
+            Attachment(id: "deuteranomalyOverlay") {
+                DeuteranomalyOverlay(intensity: appModel.filterIntensity)
+            }
         }
-        // Passthrough camera pixels are multiplied channel-by-channel.
-        // Full cross-channel mixing is not possible via colorMultiply;
-        // we use the Machado diagonal so blue is correctly preserved.
-        .preferredSurroundingsEffect(
-            appModel.filterIntensity > 0
-            ? .colorMultiply(passthroughColor(intensity: appModel.filterIntensity))
-            : .none
-        )
-    }
-
-    // MARK: - Color helpers
-
-    private func passthroughColor(intensity: Double) -> Color {
-        let c = machadoPassthroughApprox(intensity: intensity)
-        return Color(red: c.red, green: c.green, blue: c.blue)
+        // colorMultiply is removed — its diagonal (0.367, 0.673, 0.969) made the
+        // whole scene look dark blue in full immersion mode because it doesn't
+        // include the off-diagonal G→R contribution. The SwiftUI overlay above
+        // gives a better perceptual approximation.
     }
 
     // MARK: - Scene entity filter
 
     /// Walks every entity in the subtree and applies the interpolated Machado
     /// matrix to its material tint colors.
-    ///
-    /// For solid-color materials this is fully accurate (the matrix is applied
-    /// directly to the stored color). For texture-mapped materials the tint
-    /// multiplies every texel — this preserves all texture detail while
-    /// applying the best scaling approximation available through the tint API.
-    /// True per-pixel cross-channel mixing on loaded .usdz textures requires a
-    /// custom ShaderGraph material; the sign board uses CIColorMatrix for that.
+    /// For solid-color materials this is fully accurate. For texture-mapped
+    /// materials the tint scales channels (no cross-channel mix), but it still
+    /// correctly warms/shifts the hue.
     func applyColorFilter(to entity: Entity, intensity: Float) {
-        guard entity.name != "SignBoard" else { return }  // sign handles its own pixels
+        guard entity.name != "SignBoard" else { return }
 
         if var model = entity.components[ModelComponent.self] {
             let key = ObjectIdentifier(entity)
 
-            // Snapshot original tints once so we always transform from the source,
-            // not from a previously transformed value.
             if tintCache.storage[key] == nil {
                 tintCache.storage[key] = model.materials.map { material in
                     if let mat = material as? PhysicallyBasedMaterial {
@@ -129,8 +149,8 @@ struct ImmersiveView: View {
 
     // MARK: - Sign texture
 
-    /// Renders the sign view to a CGImage, applies the full Machado CIColorMatrix
-    /// per-pixel (true cross-channel transform), then uploads as a texture.
+    /// Renders the sign, applies the full Machado CIColorMatrix per-pixel
+    /// (true cross-channel transform), then uploads as a texture.
     @MainActor
     func updateSignTexture(entity: ModelEntity) {
         let signView = SignView(
@@ -150,8 +170,6 @@ struct ImmersiveView: View {
             return
         }
 
-        // Full per-pixel Machado matrix via CoreImage CIColorMatrix:
-        // each output pixel's red is 0.367·R + 0.861·G − 0.228·B, etc.
         let intensity = Float(appModel.filterIntensity)
         let cgImage = machadoTransform(rawCG, intensity: intensity) ?? rawCG
 
@@ -164,10 +182,8 @@ struct ImmersiveView: View {
             var material = UnlitMaterial()
             material.color = .init(tint: .white, texture: .init(texture))
             entity.model?.materials = [material]
-
             entity.components[OpacityComponent.self] =
                 OpacityComponent(opacity: Float(appModel.signOpacity))
-
         } catch {
             print("Texture error: \(error)")
         }

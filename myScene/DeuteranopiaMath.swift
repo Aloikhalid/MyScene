@@ -74,21 +74,3 @@ func machadoTransform(_ image: CGImage, intensity: Float) -> CGImage? {
     return ctx.createCGImage(output, from: output.extent)
 }
 
-/// Returns the (red, green, blue) scale factors to pass to
-/// `preferredSurroundingsEffect(.colorMultiply(...))`.
-///
-/// Important limitation: colorMultiply can only *scale* each channel
-/// independently — it cannot add the green channel to red, which is the
-/// dominant perceptual effect in deuteranopia (green/orange confusion).
-/// We use the diagonal of the Machado matrix, which at minimum:
-///   • Correctly preserves blue (1.0 → 0.969) — the old value of 0.0 was wrong
-///   • Correctly reduces green (1.0 → 0.673)
-///   • Dims red (1.0 → 0.367) — understated because the G→R boost is missing
-func machadoPassthroughApprox(intensity: Double) -> (red: Double, green: Double, blue: Double) {
-    let t = intensity
-    return (
-        red:   1.0 - (1.0 - mR.r) * t,   // diagonal: 1.0 → 0.367
-        green: 1.0 - (1.0 - mG.g) * t,   // diagonal: 1.0 → 0.673
-        blue:  1.0 - (1.0 - mB.b) * t    // diagonal: 1.0 → 0.969
-    )
-}
