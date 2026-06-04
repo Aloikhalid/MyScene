@@ -25,7 +25,7 @@ struct mySceneApp: App {
                     appModel.filterIntensity = 0.0
 
                     // Filter starts at 5 seconds and is fully applied at 10 seconds
-                    let steps = 20
+                    let steps = 100
                     let startDelay = 5.0
                     let duration = 5.0
                     let interval = duration / Double(steps)
