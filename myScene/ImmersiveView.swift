@@ -78,11 +78,14 @@ struct ImmersiveView: View {
     // MARK: - Passthrough compositor color
 
     private func deuteranopiaMultiply(intensity: Double) -> Color {
-        let t = intensity
+        // Deuteranopia looks nearly normal — the world is not dramatically
+        // tinted. The effect is a subtle warm/amber shift where greens and
+        // reds become hard to distinguish, not a heavy red cast.
+        // Target at full intensity: R=1.00, G=0.82, B=0.98
         return Color(
             red:   1.00,
-            green: 1.00 - 0.38 * t,
-            blue:  1.00 - 0.08 * t
+            green: 1.00 - 0.18 * intensity,
+            blue:  1.00 - 0.02 * intensity
         )
     }
 
