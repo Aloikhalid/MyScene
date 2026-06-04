@@ -9,14 +9,19 @@ import SwiftUI
 import RealityKit
 import RealityKitContent
 
+/// Reference-type container so the tint cache can be mutated inside
+/// RealityView's update closure without triggering a SwiftUI state change.
+private final class TintCache {
+    var storage: [ObjectIdentifier: [UIColor]] = [:]
+}
+
 struct ImmersiveView: View {
     @Environment(AppModel.self) private var appModel
     @State private var signEntity: ModelEntity?
     @State private var sceneEntity: Entity?
     @State private var lastAppliedIntensity: Float = -1
-    // Stores each entity's original material tints so repeated calls always
-    // transform from the source value instead of compounding.
-    @State private var originalTints: [ObjectIdentifier: [UIColor]] = [:]
+    // Reference type — mutating .storage never triggers a re-render.
+    @State private var tintCache = TintCache()
 
     var body: some View {
         RealityView { content in
@@ -92,8 +97,8 @@ struct ImmersiveView: View {
 
             // Snapshot original tints once so we always transform from the source,
             // not from a previously transformed value.
-            if originalTints[key] == nil {
-                originalTints[key] = model.materials.map { material in
+            if tintCache.storage[key] == nil {
+                tintCache.storage[key] = model.materials.map { material in
                     if let mat = material as? PhysicallyBasedMaterial {
                         return mat.baseColor.tint ?? .white
                     } else if let mat = material as? UnlitMaterial {
@@ -102,7 +107,7 @@ struct ImmersiveView: View {
                     return .white
                 }
             }
-            let baseTints = originalTints[key]!
+            guard let baseTints = tintCache.storage[key] else { return }
 
             model.materials = zip(model.materials, baseTints).map { material, baseTint in
                 if var mat = material as? PhysicallyBasedMaterial {
