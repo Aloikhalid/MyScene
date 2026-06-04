@@ -58,35 +58,16 @@ struct ImmersiveView: View {
                 }
             }
         }
-        // In full immersion mode, colorMultiply is applied by the compositor
-        // to EVERY pixel of the entire virtual scene — it is not an overlay.
+        // NOTE: preferredSurroundingsEffect(.colorMultiply) has been removed.
+        // A diagonal channel-scale CANNOT correctly simulate deuteranopia —
+        // the correct Brettel/Machado transform mixes channels (R_out depends
+        // on G_in, etc.) which colorMultiply is incapable of expressing.
+        // Any diagonal values produce a heavy false tint (red, blue, etc.).
         //
-        // Deuteranopia perceptual effect: greens shift toward orange/yellow,
-        // blue is almost unchanged, red is preserved.
-        // We avoid the raw Machado diagonal (which darkens red to 0.37 and
-        // makes everything look blue). Instead we use values that reflect the
-        // perceptual shift: green reduced, red and blue largely preserved.
-        //
-        // Interpolates from identity (1,1,1) at t=0 → target at t=1.
-        .preferredSurroundingsEffect(
-            appModel.filterIntensity > 0
-            ? .colorMultiply(deuteranopiaMultiply(intensity: appModel.filterIntensity))
-            : .none
-        )
-    }
-
-    // MARK: - Passthrough compositor color
-
-    private func deuteranopiaMultiply(intensity: Double) -> Color {
-        // Deuteranopia looks nearly normal — the world is not dramatically
-        // tinted. The effect is a subtle warm/amber shift where greens and
-        // reds become hard to distinguish, not a heavy red cast.
-        // Target at full intensity: R=1.00, G=0.82, B=0.98
-        return Color(
-            red:   1.00,
-            green: 1.00 - 0.18 * intensity,
-            blue:  1.00 - 0.02 * intensity
-        )
+        // The sign board (SignBoard entity) receives a fully accurate per-pixel
+        // Machado matrix via CoreImage CIColorMatrix in updateSignTexture().
+        // Accurate simulation of the full 3D scene requires a Metal post-process
+        // compositor pass (CompositorLayer), which is a larger architecture change.
     }
 
     // MARK: - Material-level color filter
