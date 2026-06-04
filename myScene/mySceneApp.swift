@@ -24,17 +24,17 @@ struct mySceneApp: App {
                     appModel.deuteranomalyActive = false
                     appModel.filterIntensity = 0.0
 
-                    // Gradually increase filter over 10 seconds
+                    // Filter starts at 5 seconds and is fully applied at 10 seconds
                     let steps = 20
-                    let interval = 10.0 / Double(steps)
+                    let startDelay = 5.0
+                    let duration = 5.0
+                    let interval = duration / Double(steps)
 
                     for i in 1...steps {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + interval * Double(i)) {
-                            withAnimation(.linear(duration: interval)) {
-                                appModel.filterIntensity = Double(i) / Double(steps)
-                                if i == steps {
-                                    appModel.deuteranomalyActive = true
-                                }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + startDelay + interval * Double(i)) {
+                            appModel.filterIntensity = Double(i) / Double(steps)
+                            if i == steps {
+                                appModel.deuteranomalyActive = true
                             }
                         }
                     }
