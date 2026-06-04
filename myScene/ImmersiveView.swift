@@ -79,11 +79,7 @@ struct ImmersiveView: View {
 
     private func deuteranopiaMultiply(intensity: Double) -> Color {
         let t = intensity
-        // Target at full intensity:
-        //   R = 1.00 — L-cones intact, red perception preserved
-        //   G = 0.62 — M-cones missing, green appears dimmer/shifted
-        //   B = 0.92 — S-cones intact, blue nearly unchanged
-        Color(
+        return Color(
             red:   1.00,
             green: 1.00 - 0.38 * t,
             blue:  1.00 - 0.08 * t
