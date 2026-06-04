@@ -22,50 +22,13 @@ def Xform "Root"
         bool isGlobalIBL = 0
     }
 
-    def "Procedural_City_4" (
-        active = true
-        prepend references = @Ground/Procedural_City_4.usdz@
-    )
-    {
-        float3 xformOp:scale = (0.5, 0.5, 0.5)
-        float3 xformOp:translate = (0, 0, -64.72291)
-        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
-
-        def RealityKitComponent "ImageBasedLight"
-        {
-            asset ibl = @citrus_orchard_puresky_4k.exr@
-            uniform token info:id = "RealityKit.ImageBasedLight"
-            float intensityExponent = 6.9067707
-            bool isGlobalIBL = 0
-        }
-
-        over "Meshes"
-        {
-            quatf xformOp:orient = (0.99999994, 0, 0, 0)
-            float3 xformOp:scale = (3.6722462, 3.6722462, 3.6722462)
-            float3 xformOp:translate = (0, 0, 129.60582)
-            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
-
-            def RealityKitComponent "DirectionalLight"
-            {
-                float3 color = (0.91963345, 1, 0.9328356)
-                uniform token info:id = "RealityKit.DirectionalLight"
-                float intensity = 3000
-
-                def RealityKitStruct "Shadow"
-                {
-                }
-            }
-        }
-    }
-
     def "SkyDome" (
         active = true
         prepend references = @SkyDome.usdz@
     )
     {
         float3 xformOp:scale = (0.25, 0.25, 0.25)
-        float3 xformOp:translate = (0, 0, 0)
+        float3 xformOp:translate = (0, 0, 18.16465)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
 
         over "mtl"
@@ -172,6 +135,69 @@ def Xform "Root"
                 }
             }
         }
+
+        def RealityKitComponent "DirectionalLight"
+        {
+            uniform token info:id = "RealityKit.DirectionalLight"
+            float intensity = 3500
+
+            def RealityKitStruct "Shadow"
+            {
+            }
+        }
+
+        over "Ground_01"
+        {
+            float3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+            def RealityKitComponent "DirectionalLight"
+            {
+                float3 color = (1, 0.9747316, 0.80402744)
+                uniform token info:id = "RealityKit.DirectionalLight"
+                float intensity = 3000
+
+                def RealityKitStruct "Shadow"
+                {
+                }
+            }
+        }
+
+        def RealityKitComponent "EnvironmentLightingConfiguration"
+        {
+            uniform token info:id = "RealityKit.EnvironmentLightingConfiguration"
+        }
+
+        over "Dome_01"
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            float3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+        }
+
+        over "Grid" (
+            customData = {
+                float3 rotationEulerHint = (-3.1771345, 0.01882172, 3.6284192)
+            }
+        )
+        {
+            quatf xformOp:orient = (0.004849135, -0.24113034, 0.97028446, 0.019513369)
+            float3 xformOp:scale = (0.9999998, 0.99999976, 0.9999998)
+            float3 xformOp:translate = (4.4034715, 137.76053, -0.000014305115)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+            def RealityKitComponent "DirectionalLight"
+            {
+                float3 color = (1, 0.97525513, 0.85202193)
+                uniform token info:id = "RealityKit.DirectionalLight"
+                float intensity = 3500
+
+                def RealityKitStruct "Shadow"
+                {
+                }
+            }
+        }
     }
 
     def "BigSign" (
@@ -184,13 +210,27 @@ def Xform "Root"
     {
         quatf xformOp:orient = (0.6920081, -0.6737015, -0.19639042, -0.16935726)
         float3 xformOp:scale = (0.99999994, 0.99999994, 0.99999994)
-        float3 xformOp:translate = (-15.033938, 0, 0)
+        float3 xformOp:translate = (-23.593431, 0, 5.053514)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
 
         def RealityKitComponent "InputTarget"
         {
             uniform token info:id = "RealityKit.InputTarget"
         }
+    }
+
+    def "CityMacro" (
+        active = true
+        customData = {
+            float3 rotationEulerHint = (-1.5707963, 0, 0)
+        }
+        prepend references = @CityMacro.usdc@
+    )
+    {
+        quatf xformOp:orient = (0.70710677, -0.7071067, 0, 0)
+        float3 xformOp:scale = (50, 50, 50)
+        float3 xformOp:translate = (0, 0, -45.772354)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
     }
 }
 

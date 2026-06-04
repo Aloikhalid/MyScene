@@ -38,16 +38,7 @@
       [
         "6965F0DD-3183-4AC6-AEB6-D51C14C64ADF",
         "Root",
-        "SkyDome",
-        "mtl"
-      ],
-      {
-        "isExpanded" : true,
-        "isLocked" : false
-      },
-      [
-        "6965F0DD-3183-4AC6-AEB6-D51C14C64ADF",
-        "Root"
+        "SkyDome"
       ],
       {
         "isExpanded" : true,
@@ -56,7 +47,29 @@
       [
         "6965F0DD-3183-4AC6-AEB6-D51C14C64ADF",
         "Root",
-        "SkyDome"
+        "Procedural_City_4",
+        "Meshes"
+      ],
+      {
+        "isExpanded" : true,
+        "isLocked" : false
+      },
+      [
+        "6965F0DD-3183-4AC6-AEB6-D51C14C64ADF",
+        "Root",
+        "Procedural_City_4",
+        "Meshes",
+        "Sketchfab_model"
+      ],
+      {
+        "isExpanded" : true,
+        "isLocked" : false
+      },
+      [
+        "6965F0DD-3183-4AC6-AEB6-D51C14C64ADF",
+        "Root",
+        "SkyDome",
+        "mtl"
       ],
       {
         "isExpanded" : true,
@@ -69,6 +82,14 @@
       ],
       {
         "disallowsFraming" : false,
+        "isExpanded" : false,
+        "isLocked" : false
+      },
+      [
+        "6965F0DD-3183-4AC6-AEB6-D51C14C64ADF",
+        "Root"
+      ],
+      {
         "isExpanded" : true,
         "isLocked" : false
       }

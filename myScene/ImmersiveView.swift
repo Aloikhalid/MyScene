@@ -10,6 +10,7 @@
 //  ImmersiveView.swift
 //  myScene
 
+
 import SwiftUI
 import RealityKit
 import RealityKitContent
@@ -18,6 +19,7 @@ struct ImmersiveView: View {
     @Environment(AppModel.self) private var appModel
     @State private var signEntity: ModelEntity?
     @State private var sceneEntity: Entity?
+    @State private var lastAppliedIntensity: Float = -1
 
     var body: some View {
         RealityView { content in
@@ -48,24 +50,60 @@ struct ImmersiveView: View {
                 updateSignTexture(entity: sign)
             }
 
-            // Apply Deuteranomaly filter by tinting the scene
-            if let scene = sceneEntity {
-                if appModel.deuteranomalyActive {
-                    // Simulate green-red color blindness with yellow-brown tint
-                    scene.components[OpacityComponent.self] =
-                        OpacityComponent(opacity: 0.85)
-                } else {
-                    scene.components[OpacityComponent.self] =
-                        OpacityComponent(opacity: 1.0)
+            // Apply per-pixel deuteranomaly color transform to all 3D scene entities
+            let intensity = Float(appModel.filterIntensity)
+            if intensity != lastAppliedIntensity {
+                lastAppliedIntensity = intensity
+                if let scene = sceneEntity {
+                    applyColorFilter(to: scene, intensity: intensity)
                 }
             }
         }
-        // This changes the surrounding passthrough tint
+        // Gradually multiply passthrough camera pixels from neutral → deuteranomaly tint
         .preferredSurroundingsEffect(
-            appModel.deuteranomalyActive
-            ? .colorMultiply(.init(red: 0.7, green: 0.65, blue: 0.0))
+            appModel.filterIntensity > 0
+            ? .colorMultiply(deuteranomalyColor(intensity: appModel.filterIntensity))
             : .none
         )
+    }
+
+    // Interpolate surroundings colorMultiply from neutral (1,1,1) → deuteranomaly (0.7, 0.65, 0.0)
+    func deuteranomalyColor(intensity: Double) -> Color {
+        Color(
+            red:   1.0 - 0.30 * intensity,
+            green: 1.0 - 0.35 * intensity,
+            blue:  1.0 - 1.00 * intensity
+        )
+    }
+
+    // Walk every entity and multiply its material colors by the deuteranomaly tint.
+    // This changes the actual pixel colors stored in each material rather than
+    // placing a colored overlay on top.
+    func applyColorFilter(to entity: Entity, intensity: Float) {
+        guard entity.name != "SignBoard" else { return }  // sign manages its own texture
+
+        if var model = entity.components[ModelComponent.self] {
+            let r = CGFloat(1.0 - 0.30 * intensity)
+            let g = CGFloat(1.0 - 0.35 * intensity)
+            let b = CGFloat(1.0 - 1.00 * intensity)
+            let tint = UIColor(red: r, green: g, blue: b, alpha: 1.0)
+
+            model.materials = model.materials.map { material in
+                if var mat = material as? PhysicallyBasedMaterial {
+                    mat.baseColor.tint = tint
+                    return mat
+                } else if var mat = material as? UnlitMaterial {
+                    mat.color.tint = tint
+                    return mat
+                }
+                return material
+            }
+            entity.components[ModelComponent.self] = model
+        }
+
+        for child in entity.children {
+            applyColorFilter(to: child, intensity: intensity)
+        }
     }
 
     func printAllEntities(_ entity: Entity, indent: Int) {
