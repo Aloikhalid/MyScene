@@ -13,6 +13,7 @@ import RealityKitContent
 /// RealityView's update closure without triggering a SwiftUI state change.
 private final class TintCache {
     var storage: [ObjectIdentifier: [UIColor]] = [:]
+    var lastAppliedIntensity: Float = -1
 }
 
 /// Full-scene warm overlay that mimics the perceptual appearance of deuteranopia.
@@ -24,18 +25,22 @@ private struct DeuteranomalyOverlay: View {
 
     var body: some View {
         ZStack {
-            // Warm amber tint — deuteranopia shifts greens toward orange/yellow
+            // Warm amber multiply — darkens blue/green relatively more than red,
+            // giving the scene the yellow-orange cast deuteranopes experience.
+            // .multiply composites against the 3D scene behind the plane.
             Rectangle()
-                .fill(Color(red: 0.68, green: 0.62, blue: 0.32))
-                .opacity(intensity * 0.30)
+                .fill(Color(red: 1.0, green: 0.88, blue: 0.62))
+                .blendMode(.multiply)
+                .opacity(intensity * 0.55)
 
-            // Desaturation layer — reduces the vivid green/red contrast
+            // Desaturation layer — softens the vivid red/green contrast
             Rectangle()
-                .fill(Color.gray)
+                .fill(Color.gray.opacity(0.5))
                 .blendMode(.saturation)
-                .opacity(intensity * 0.45)
+                .opacity(intensity * 0.40)
         }
-        .frame(width: 1500, height: 1500)
+        .frame(width: 2000, height: 2000)
+        .background(Color.clear)
     }
 }
 
@@ -43,8 +48,7 @@ struct ImmersiveView: View {
     @Environment(AppModel.self) private var appModel
     @State private var signEntity: ModelEntity?
     @State private var sceneEntity: Entity?
-    @State private var lastAppliedIntensity: Float = -1
-    // Reference type — mutating .storage never triggers a re-render.
+    // Reference type — mutating its properties never triggers a re-render.
     @State private var tintCache = TintCache()
 
     var body: some View {
@@ -76,6 +80,7 @@ struct ImmersiveView: View {
             // without flattening it to a solid colour.
             if let overlay = attachments.entity(for: "deuteranomalyOverlay") {
                 overlay.position = [0, 1.5, -2.5]
+                overlay.scale = [8.5, 8.5, 1]   // scale to cover full FOV
                 content.add(overlay)
             }
 
@@ -86,8 +91,8 @@ struct ImmersiveView: View {
 
             // Re-apply material-level Machado transform only when intensity changes
             let intensity = Float(appModel.filterIntensity)
-            if intensity != lastAppliedIntensity {
-                lastAppliedIntensity = intensity
+            if intensity != tintCache.lastAppliedIntensity {
+                tintCache.lastAppliedIntensity = intensity
                 if let scene = sceneEntity {
                     applyColorFilter(to: scene, intensity: intensity)
                 }
