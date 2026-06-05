@@ -178,13 +178,13 @@ def Xform "Root"
 
         over "Grid" (
             customData = {
-                float3 rotationEulerHint = (-3.1771345, 0.01882172, 3.6284192)
+                float3 rotationEulerHint = (-3.660076, 0.2544815, 3.561527)
             }
         )
         {
-            quatf xformOp:orient = (0.004849135, -0.24113034, 0.97028446, 0.019513369)
-            float3 xformOp:scale = (0.9999998, 0.99999976, 0.9999998)
-            float3 xformOp:translate = (4.4034715, 137.76053, -0.000014305115)
+            quatf xformOp:orient = (0.06696538, -0.23165023, 0.9309336, 0.27425608)
+            float3 xformOp:scale = (0.99999976, 0.99999976, 0.9999998)
+            float3 xformOp:translate = (4.4034715, 137.76053, -0.000012397766)
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
 
             def RealityKitComponent "DirectionalLight"
@@ -203,14 +203,14 @@ def Xform "Root"
     def "BigSign" (
         active = true
         customData = {
-            float3 rotationEulerHint = (-1.5533432, -0.5235988, 0.034906615)
+            float3 rotationEulerHint = (-1.4840313, 1.0426704, 0.060014077)
         }
         prepend references = @BigSign.usdc@
     )
     {
-        quatf xformOp:orient = (0.6920081, -0.6737015, -0.19639042, -0.16935726)
-        float3 xformOp:scale = (0.99999994, 0.99999994, 0.99999994)
-        float3 xformOp:translate = (-23.593431, 0, 5.053514)
+        quatf xformOp:orient = (0.62880135, -0.59675205, 0.3493612, 0.35558757)
+        float3 xformOp:scale = (0.9999998, 0.9999998, 0.9999998)
+        float3 xformOp:translate = (-20.804571, 0, -5.740408)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
 
         def RealityKitComponent "InputTarget"
@@ -229,7 +229,7 @@ def Xform "Root"
     {
         quatf xformOp:orient = (0.70710677, -0.7071067, 0, 0)
         float3 xformOp:scale = (50, 50, 50)
-        float3 xformOp:translate = (0, 0, -45.772354)
+        float3 xformOp:translate = (0, 0, -39.44492)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
     }
 }

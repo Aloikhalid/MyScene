@@ -1,15 +1,9 @@
 //
 //  ImmersiveView.swift
 //  myScene
-//
+
 //  Created by alya Alabdulrahim on 26/11/1447 AH.
 //
-
-//
-//
-//  ImmersiveView.swift
-//  myScene
-
 
 import SwiftUI
 import RealityKit
