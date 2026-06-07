@@ -75,23 +75,27 @@ struct ImmersiveView: View {
                 if let sign = scene.findEntity(named: "BigSign") {
 
                     // ── SignBoard overlay ──────────────────────────────────
+                    // Find the widest child entity — that's the sign face panel,
+                    // not the thin vertical poles. Poles have small X span; the
+                    // panel has the largest X span in the subtree.
+                    let panelEntity = signPanelEntity(in: sign) ?? sign
+                    let panelBounds = panelEntity.visualBounds(recursive: true, relativeTo: sign)
+
+                    let w = panelBounds.max.x - panelBounds.min.x
+                    let h = panelBounds.max.y - panelBounds.min.y
+                    let cx = (panelBounds.min.x + panelBounds.max.x) / 2
+                    let cy = (panelBounds.min.y + panelBounds.max.y) / 2
+                    let fz = panelBounds.max.z + 0.02
+
+                    print("Panel '\(panelEntity.name)' bounds=\(panelBounds)  size=(\(w), \(h))")
+
                     let board = ModelEntity(
-                        mesh: .generatePlane(width: 7, height: 3.5),
+                        mesh: .generatePlane(width: w, height: h),
                         materials: [UnlitMaterial()]
                     )
                     board.name = "SignBoard"
-
-                    // Use the sign's own bounding box (in its local space) to
-                    // center the overlay on the sign face automatically.
-                    // bounds.max.z puts us at the front-most face; cx/cy center us.
-                    let bounds = sign.visualBounds(recursive: true, relativeTo: sign)
-                    let cx = (bounds.min.x + bounds.max.x) / 2
-                    let cy = (bounds.min.y + bounds.max.y) / 2
-                    let fz = bounds.max.z + 0.02
-
                     board.position = SIMD3<Float>(cx, cy, fz)
                     board.orientation = simd_quatf(ix: 0, iy: 0, iz: 0, r: 1)
-                    print("SignBoard placed at local (\(cx), \(cy), \(fz))  bounds=\(bounds)")
 
                     sign.addChild(board)
                     signEntity = board
@@ -216,10 +220,32 @@ struct ImmersiveView: View {
 
     func printAllEntities(_ entity: Entity, indent: Int) {
         let spacing = String(repeating: "  ", count: indent)
-        print("\(spacing)→ '\(entity.name)'")
+        let b = entity.visualBounds(recursive: false, relativeTo: entity.parent)
+        let xSpan = b.max.x - b.min.x
+        let ySpan = b.max.y - b.min.y
+        print("\(spacing)→ '\(entity.name)'  xSpan=\(String(format: "%.2f", xSpan))  ySpan=\(String(format: "%.2f", ySpan))")
         for child in entity.children {
             printAllEntities(child, indent: indent + 1)
         }
+    }
+
+    /// Walks the subtree rooted at `root` and returns the entity whose own
+    /// (non-recursive) bounding box has the greatest X span — i.e. the widest
+    /// flat panel rather than a narrow vertical pole.
+    func signPanelEntity(in root: Entity) -> Entity? {
+        var best: Entity? = nil
+        var bestSpan: Float = 0
+        func walk(_ e: Entity) {
+            let b = e.visualBounds(recursive: false, relativeTo: e.parent)
+            let xSpan = b.max.x - b.min.x
+            if xSpan > bestSpan {
+                bestSpan = xSpan
+                best = e
+            }
+            for child in e.children { walk(child) }
+        }
+        walk(root)
+        return best
     }
 }
 
