@@ -75,19 +75,23 @@ struct ImmersiveView: View {
                 if let sign = scene.findEntity(named: "BigSign") {
 
                     // ── SignBoard overlay ──────────────────────────────────
-                    // Find the widest child entity — that's the sign face panel,
-                    // not the thin vertical poles. Poles have small X span; the
-                    // panel has the largest X span in the subtree.
+                    // panelEntity gives us the widest flat face (not poles) for
+                    // cx/cy centering and w/h sizing.
+                    // fullBounds gives us the true frontmost Z of all geometry so
+                    // the board is guaranteed to sit in front of everything.
                     let panelEntity = signPanelEntity(in: sign) ?? sign
                     let panelBounds = panelEntity.visualBounds(recursive: true, relativeTo: sign)
+                    let fullBounds  = sign.visualBounds(recursive: true, relativeTo: sign)
 
-                    let w = panelBounds.max.x - panelBounds.min.x
-                    let h = panelBounds.max.y - panelBounds.min.y
+                    let w  = panelBounds.max.x - panelBounds.min.x
+                    let h  = panelBounds.max.y - panelBounds.min.y
                     let cx = (panelBounds.min.x + panelBounds.max.x) / 2
                     let cy = (panelBounds.min.y + panelBounds.max.y) / 2
-                    let fz = panelBounds.max.z + 0.02
+                    // Push 0.12 m beyond the frontmost point of the entire sign
+                    // geometry to clear all faces and avoid z-fighting.
+                    let fz = fullBounds.max.z + 0.12
 
-                    print("Panel '\(panelEntity.name)' bounds=\(panelBounds)  size=(\(w), \(h))")
+                    print("Panel '\(panelEntity.name)' panelBounds=\(panelBounds)  fullMaxZ=\(fullBounds.max.z)  size=(\(w), \(h))")
 
                     let board = ModelEntity(
                         mesh: .generatePlane(width: w, height: h),
