@@ -90,7 +90,7 @@ struct ImmersiveView: View {
                     let fz = bounds.max.z + 0.02
 
                     board.position = SIMD3<Float>(cx, cy, fz)
-                    board.orientation = .identity
+                    board.orientation = simd_quatf(ix: 0, iy: 0, iz: 0, r: 1)
                     print("SignBoard placed at local (\(cx), \(cy), \(fz))  bounds=\(bounds)")
 
                     sign.addChild(board)
