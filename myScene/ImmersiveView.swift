@@ -37,8 +37,14 @@ struct ImmersiveView: View {
                         materials: [UnlitMaterial()]
                     )
                     board.name = "SignBoard"
-                    board.position = [1, 4.5, 0.01]
-                    board.orientation = simd_quatf(angle: .pi / 1, axis: [1, 0, 0])
+                    // Position in BigSign's local space: centered horizontally,
+                    // raised to sign-panel height, small Z offset in front of face.
+                    // Fine-tune X/Y here if the overlay needs shifting.
+                    board.position = [0, 3.5, 0.05]
+                    // No rotation — generatePlane(width:height:) creates a vertical
+                    // XY plane facing +Z, which matches BigSign's sign face local direction.
+                    // The previous π rotation was flipping it to face -Z (invisible).
+                    board.orientation = .identity
                     sign.addChild(board)
                     signEntity = board
                     sign.components.set(HoverEffectComponent())
@@ -146,6 +152,7 @@ struct ImmersiveView: View {
             )
             var material = UnlitMaterial()
             material.color = .init(tint: .white, texture: .init(texture))
+            material.faceCulling = .none   // visible from both sides
             entity.model?.materials = [material]
             entity.components[OpacityComponent.self] =
                 OpacityComponent(opacity: Float(appModel.signOpacity))
