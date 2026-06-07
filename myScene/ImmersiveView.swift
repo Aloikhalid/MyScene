@@ -16,6 +16,47 @@ private final class TintCache {
     var lastAppliedIntensity: Float = -1
 }
 
+/// Controls panel shown floating above the sign inside the immersive space.
+private struct ControlsPanel: View {
+    @Environment(AppModel.self) private var appModel
+
+    var body: some View {
+        @Bindable var appModel = appModel
+
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+
+                Text("Sign Controls")
+                    .font(.title2).bold()
+
+                ColorPicker("Sign Color",  selection: $appModel.signColor)
+                ColorPicker("Text Color",  selection: $appModel.textColor)
+
+                VStack(alignment: .leading) {
+                    Text("Saturation: \(Int(appModel.signSaturation * 100))%")
+                    Slider(value: $appModel.signSaturation, in: 0...2).tint(.purple)
+                }
+                VStack(alignment: .leading) {
+                    Text("Contrast: \(Int(appModel.signContrast * 100))%")
+                    Slider(value: $appModel.signContrast, in: 0...2).tint(.orange)
+                }
+                VStack(alignment: .leading) {
+                    Text("Opacity: \(Int(appModel.signOpacity * 100))%")
+                    Slider(value: $appModel.signOpacity, in: 0...1).tint(.blue)
+                }
+
+                Divider()
+
+                Toggle("Deuteranomaly Filter", isOn: $appModel.deuteranomalyActive)
+                    .tint(.green)
+            }
+            .padding(20)
+        }
+        .frame(width: 360, height: 420)
+        .glassBackgroundEffect()
+    }
+}
+
 struct ImmersiveView: View {
     @Environment(AppModel.self) private var appModel
     @State private var signEntity: ModelEntity?
@@ -23,7 +64,7 @@ struct ImmersiveView: View {
     @State private var tintCache = TintCache()
 
     var body: some View {
-        RealityView { content in
+        RealityView { content, attachments in
             if let scene = try? await Entity(named: "Immersive",
                                              in: realityKitContentBundle) {
                 content.add(scene)
@@ -32,31 +73,47 @@ struct ImmersiveView: View {
                 printAllEntities(scene, indent: 0)
 
                 if let sign = scene.findEntity(named: "BigSign") {
+
+                    // ── SignBoard overlay ──────────────────────────────────
                     let board = ModelEntity(
                         mesh: .generatePlane(width: 7, height: 3.5),
                         materials: [UnlitMaterial()]
                     )
                     board.name = "SignBoard"
 
-                    // Compute the sign's own bounding box in its local space so
-                    // we can auto-center the overlay on the sign face without
-                    // touching BigSign's transform at all.
+                    // Use the sign's own bounding box (in its local space) to
+                    // center the overlay on the sign face automatically.
+                    // bounds.max.z puts us at the front-most face; cx/cy center us.
                     let bounds = sign.visualBounds(recursive: true, relativeTo: sign)
                     let cx = (bounds.min.x + bounds.max.x) / 2
                     let cy = (bounds.min.y + bounds.max.y) / 2
-                    let fz = bounds.max.z + 0.02  // 2 cm in front of the deepest face
+                    let fz = bounds.max.z + 0.02
 
                     board.position = SIMD3<Float>(cx, cy, fz)
                     board.orientation = .identity
-                    print("SignBoard bounds: \(bounds), placed at (\(cx), \(cy), \(fz))")
+                    print("SignBoard placed at local (\(cx), \(cy), \(fz))  bounds=\(bounds)")
 
                     sign.addChild(board)
                     signEntity = board
                     sign.components.set(HoverEffectComponent())
                     updateSignTexture(entity: board)
+
+                    // ── Controls panel above the sign ──────────────────────
+                    if let panel = attachments.entity(for: "controlPanel") {
+                        // Get the sign's world-space position and place the panel
+                        // 5.5 m above it and 0.5 m toward the viewer.
+                        let signWorld = sign.position(relativeTo: nil)
+                        panel.setPosition(
+                            SIMD3<Float>(signWorld.x,
+                                         signWorld.y + 5.5,
+                                         signWorld.z + 0.5),
+                            relativeTo: nil
+                        )
+                        content.add(panel)
+                    }
                 }
             }
-        } update: { content in
+        } update: { content, attachments in
             if let sign = signEntity {
                 updateSignTexture(entity: sign)
             }
@@ -68,25 +125,16 @@ struct ImmersiveView: View {
                     applyColorFilter(to: scene, intensity: intensity)
                 }
             }
+        } attachments: {
+            Attachment(id: "controlPanel") {
+                ControlsPanel()
+                    .environment(appModel)
+            }
         }
-        // NOTE: preferredSurroundingsEffect(.colorMultiply) has been removed.
-        // A diagonal channel-scale CANNOT correctly simulate deuteranopia —
-        // the correct Brettel/Machado transform mixes channels (R_out depends
-        // on G_in, etc.) which colorMultiply is incapable of expressing.
-        // Any diagonal values produce a heavy false tint (red, blue, etc.).
-        //
-        // The sign board (SignBoard entity) receives a fully accurate per-pixel
-        // Machado matrix via CoreImage CIColorMatrix in updateSignTexture().
-        // Accurate simulation of the full 3D scene requires a Metal post-process
-        // compositor pass (CompositorLayer), which is a larger architecture change.
     }
 
     // MARK: - Material-level color filter
 
-    /// Applies the Machado matrix to material tint colors.
-    /// Exact for solid-color materials; for textured materials it applies
-    /// the matrix to the tint (which starts as white — so no change for white
-    /// tints, but correct for any material with a non-white tint color).
     func applyColorFilter(to entity: Entity, intensity: Float) {
         guard entity.name != "SignBoard" else { return }
 
@@ -125,8 +173,6 @@ struct ImmersiveView: View {
 
     // MARK: - Sign texture
 
-    /// Renders the sign and applies the full Machado CIColorMatrix per-pixel
-    /// before uploading — true cross-channel transform on every pixel.
     @MainActor
     func updateSignTexture(entity: ModelEntity) {
         let signView = SignView(
@@ -157,7 +203,7 @@ struct ImmersiveView: View {
             )
             var material = UnlitMaterial()
             material.color = .init(tint: .white, texture: .init(texture))
-            material.faceCulling = .none   // visible from both sides
+            material.faceCulling = .none
             entity.model?.materials = [material]
             entity.components[OpacityComponent.self] =
                 OpacityComponent(opacity: Float(appModel.signOpacity))
