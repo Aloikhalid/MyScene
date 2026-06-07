@@ -95,7 +95,9 @@ struct ImmersiveView: View {
                     )
                     board.name = "SignBoard"
                     board.position = SIMD3<Float>(cx, cy, fz)
-                    board.orientation = simd_quatf(ix: 0, iy: 0, iz: 0, r: 1)
+                    // generatePlane lies flat in XZ by default; rotate -90° around X
+                    // to stand it upright in the XY plane, facing +Z (toward viewer).
+                    board.orientation = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
 
                     sign.addChild(board)
                     signEntity = board
