@@ -75,35 +75,45 @@ struct ImmersiveView: View {
                 if let sign = scene.findEntity(named: "BigSign") {
 
                     // ── SignBoard overlay ──────────────────────────────────
-                    // panelEntity gives us the widest flat face (not poles) for
-                    // cx/cy centering and w/h sizing.
-                    // fullBounds gives us the true frontmost Z of all geometry so
-                    // the board is guaranteed to sit in front of everything.
                     let panelEntity = signPanelEntity(in: sign) ?? sign
                     let panelBounds = panelEntity.visualBounds(recursive: true, relativeTo: sign)
-                    let fullBounds  = sign.visualBounds(recursive: true, relativeTo: sign)
 
                     let w  = panelBounds.max.x - panelBounds.min.x
                     let h  = panelBounds.max.y - panelBounds.min.y
                     let cx = (panelBounds.min.x + panelBounds.max.x) / 2
                     let cy = (panelBounds.min.y + panelBounds.max.y) / 2
-                    // Push 0.12 m beyond the frontmost point of the entire sign
-                    // geometry to clear all faces and avoid z-fighting.
-                    let fz = fullBounds.max.z + 0.12
 
-                    print("Panel '\(panelEntity.name)' panelBounds=\(panelBounds)  fullMaxZ=\(fullBounds.max.z)  size=(\(w), \(h))")
+                    print("Panel '\(panelEntity.name)' size=(\(w), \(h))")
 
                     let board = ModelEntity(
                         mesh: .generatePlane(width: w, height: h),
                         materials: [UnlitMaterial()]
                     )
                     board.name = "SignBoard"
-                    board.position = SIMD3<Float>(cx, cy, fz)
-                    // generatePlane lies flat in XZ by default; rotate -90° around X
-                    // to stand it upright in the XY plane, facing +Z (toward viewer).
-                    board.orientation = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
 
-                    sign.addChild(board)
+                    // The sign's local Z axis does NOT point toward the viewer —
+                    // pushing along local Z just moves the board sideways.
+                    // Instead: transform the panel center to world space, then
+                    // push 0.35 m along the world-space direction sign → viewer.
+                    let signWorldMatrix = sign.transformMatrix(relativeTo: nil)
+                    let localCenter4 = SIMD4<Float>(cx, cy, 0, 1)
+                    let worldCenter4  = signWorldMatrix * localCenter4
+                    let worldCenter   = SIMD3<Float>(worldCenter4.x, worldCenter4.y, worldCenter4.z)
+
+                    let signWorldPos = sign.position(relativeTo: nil)
+                    let toViewer     = normalize(-signWorldPos)           // sign → origin (viewer)
+                    let boardWorldPos = worldCenter + toViewer * 0.35
+
+                    // Orientation: sign's world rotation × the upright correction.
+                    // This keeps the board parallel to the sign face in world space.
+                    let uprightRot   = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
+                    let signWorldRot = sign.orientation(relativeTo: nil)
+                    let boardWorldRot = signWorldRot * uprightRot
+
+                    board.setPosition(boardWorldPos, relativeTo: nil)
+                    board.setOrientation(boardWorldRot, relativeTo: nil)
+
+                    content.add(board)   // world root — NOT sign.addChild
                     signEntity = board
                     sign.components.set(HoverEffectComponent())
                     updateSignTexture(entity: board)
