@@ -37,14 +37,19 @@ struct ImmersiveView: View {
                         materials: [UnlitMaterial()]
                     )
                     board.name = "SignBoard"
-                    // Position in BigSign's local space: centered horizontally,
-                    // raised to sign-panel height, small Z offset in front of face.
-                    // Fine-tune X/Y here if the overlay needs shifting.
-                    board.position = [0, 3.5, 0.05]
-                    // No rotation — generatePlane(width:height:) creates a vertical
-                    // XY plane facing +Z, which matches BigSign's sign face local direction.
-                    // The previous π rotation was flipping it to face -Z (invisible).
+
+                    // Compute the sign's own bounding box in its local space so
+                    // we can auto-center the overlay on the sign face without
+                    // touching BigSign's transform at all.
+                    let bounds = sign.visualBounds(recursive: true, relativeTo: sign)
+                    let cx = (bounds.min.x + bounds.max.x) / 2
+                    let cy = (bounds.min.y + bounds.max.y) / 2
+                    let fz = bounds.max.z + 0.02  // 2 cm in front of the deepest face
+
+                    board.position = SIMD3<Float>(cx, cy, fz)
                     board.orientation = .identity
+                    print("SignBoard bounds: \(bounds), placed at (\(cx), \(cy), \(fz))")
+
                     sign.addChild(board)
                     signEntity = board
                     sign.components.set(HoverEffectComponent())
