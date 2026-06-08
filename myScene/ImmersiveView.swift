@@ -68,6 +68,12 @@ struct ImmersiveView: View {
     @State private var sceneEntity: Entity?
     @State private var tintCache = TintCache()
 
+    // Manual placement for the editable SwiftUI sign layer in BigSign's local space.
+    // Tune only these numbers after each run until the overlay sits perfectly on the base sign.
+    private let editableSignPosition = SIMD3<Float>(0.08, 2.43, 0.0)
+    private let editableSignSize = SIMD2<Float>(10.52, 4.58)
+    private let editableSignForwardOffset: Float = 0.020
+
     var body: some View {
         RealityView { content, attachments in
             if let scene = try? await Entity(named: "Immersive",
@@ -80,46 +86,54 @@ struct ImmersiveView: View {
                 if let sign = scene.findEntity(named: "BigSign") {
 
                     // ── SignBoard overlay ──────────────────────────────────
-                    let panelEntity = signPanelEntity(in: sign) ?? sign
-                    let panelBounds = panelEntity.visualBounds(recursive: true, relativeTo: sign)
-                    let fullBounds  = sign.visualBounds(recursive: true, relativeTo: sign)
-
-                    let w  = panelBounds.max.x - panelBounds.min.x
-                    let h  = panelBounds.max.y - panelBounds.min.y
-                    let cx = (panelBounds.min.x + panelBounds.max.x) / 2
-                    let cy = (panelBounds.min.y + panelBounds.max.y) / 2
-
+                    // Build the editable layer as a second skin over the existing highway sign.
+                    // It is parented to the same parent as BigSign so its transform can match the
+                    // sign face directly instead of drifting inside BigSign's nested local axes.
                     let board = ModelEntity(
-                        mesh: .generatePlane(width: w, height: h),
+                        mesh: .generatePlane(width: editableSignSize.x, height: editableSignSize.y),
                         materials: [UnlitMaterial()]
                     )
                     board.name = "SignBoard"
 
-                    // 1. Add as child so it inherits the sign's scene graph.
-                    sign.addChild(board)
+                    let signBounds = sign.visualBounds(recursive: true, relativeTo: sign.parent)
+                    let signCenter = (signBounds.min + signBounds.max) * 0.5
 
-                    // 2. Compute sign face center in world space.
-                    //    Use fullBounds.max.z (the front face in local space)
-                    //    so the starting point is already at the sign surface.
-                    let signWorldRot = sign.orientation(relativeTo: nil)
-                    let signMatrix   = sign.transformMatrix(relativeTo: nil)
-                    let faceLocal    = SIMD4<Float>(cx, cy, fullBounds.max.z, 1)
-                    let faceWorld4   = signMatrix * faceLocal
-                    let faceWorld    = SIMD3<Float>(faceWorld4.x, faceWorld4.y, faceWorld4.z)
+                    // RealityKit's generated plane already lives in the X/Y plane, which matches
+                    // the highway sign face. Rotate it 180° so we see the textured front side
+                    // from the street/camera side instead of the mirrored back side.
+                    let signFaceRotation = simd_quatf(angle: .pi, axis: SIMD3<Float>(0, 1, 0))
 
-                    // 3. Push 0.08 m toward the viewer along the world direction
-                    //    sign → origin, completely avoiding local-axis drift.
-                    let signWorldPos = sign.position(relativeTo: nil)
-                    let toViewer     = normalize(-signWorldPos)
-                    let boardWorldPos = faceWorld + toViewer * 0.08
+                    if let signParent = sign.parent {
+                        signParent.addChild(board)
 
-                    // 4. Set world-space position & orientation via relativeTo:nil.
-                    board.setPosition(boardWorldPos, relativeTo: nil)
-                    let uprightRot = simd_quatf(angle: -.pi / 2, axis: SIMD3<Float>(1, 0, 0))
-                    board.setOrientation(signWorldRot * uprightRot, relativeTo: nil)
+                        // Place the editable layer on the front face of the base sign instead of
+                        // through its middle. This creates the desired two stacked layers:
+                        // base sign behind, editable SwiftUI texture slightly in front.
+                        board.setPosition(
+                            SIMD3<Float>(
+                                signCenter.x + editableSignPosition.x,
+                                signCenter.y + editableSignPosition.y,
+                                signBounds.min.z - editableSignForwardOffset
+                            ),
+                            relativeTo: signParent
+                        )
+
+                        // Do not multiply by BigSign's nested orientation here; that rotated the
+                        // overlay sideways so it cut through the sign. Keep the generated plane
+                        // upright in the same front-facing plane as the sign artwork.
+                        board.setOrientation(signFaceRotation, relativeTo: signParent)
+                    } else {
+                        sign.addChild(board)
+                        board.position = SIMD3<Float>(
+                            editableSignPosition.x,
+                            editableSignPosition.y,
+                            editableSignPosition.z - editableSignForwardOffset
+                        )
+                        board.orientation = signFaceRotation
+                    }
 
                     signEntity = board
-                    sign.components.set(HoverEffectComponent())
+                    board.components.set(HoverEffectComponent())
                     updateSignTexture(entity: board)
 
                     // ── Controls panel above the sign ──────────────────────
@@ -168,9 +182,9 @@ struct ImmersiveView: View {
             if tintCache.storage[key] == nil {
                 tintCache.storage[key] = model.materials.map { material in
                     if let mat = material as? PhysicallyBasedMaterial {
-                        return mat.baseColor.tint ?? .white
+                        return mat.baseColor.tint
                     } else if let mat = material as? UnlitMaterial {
-                        return mat.color.tint ?? .white
+                        return mat.color.tint
                     }
                     return .white
                 }
@@ -190,7 +204,7 @@ struct ImmersiveView: View {
             entity.components[ModelComponent.self] = model
         }
 
-        for child in entity.children {
+        for child in entity.children where child.name != "SignBoard" {
             applyColorFilter(to: child, intensity: intensity)
         }
     }
@@ -227,7 +241,9 @@ struct ImmersiveView: View {
             )
             var material = UnlitMaterial()
             material.color = .init(tint: .white, texture: .init(texture))
-            material.faceCulling = .none
+            // Render the editable skin from both sides while we align it exactly over the
+            // original sign; the duplicate was a placement issue, not the texture itself.
+            material.faceCulling = .back
             entity.model?.materials = [material]
             entity.components[OpacityComponent.self] =
                 OpacityComponent(opacity: Float(appModel.signOpacity))
@@ -247,25 +263,6 @@ struct ImmersiveView: View {
         for child in entity.children {
             printAllEntities(child, indent: indent + 1)
         }
-    }
-
-    /// Walks the subtree rooted at `root` and returns the entity whose own
-    /// (non-recursive) bounding box has the greatest X span — i.e. the widest
-    /// flat panel rather than a narrow vertical pole.
-    func signPanelEntity(in root: Entity) -> Entity? {
-        var best: Entity? = nil
-        var bestSpan: Float = 0
-        func walk(_ e: Entity) {
-            let b = e.visualBounds(recursive: false, relativeTo: e.parent)
-            let xSpan = b.max.x - b.min.x
-            if xSpan > bestSpan {
-                bestSpan = xSpan
-                best = e
-            }
-            for child in e.children { walk(child) }
-        }
-        walk(root)
-        return best
     }
 }
 
